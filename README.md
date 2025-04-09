@@ -34,13 +34,33 @@ The EDA was performed so we could better understand how variables were related t
 
 Our research question focuses on studying the success of a movie, so we decided that variables such as “Gross_Earnings” and “IMDB_Score” would be the most suitable ones to consider as the output variable for the models, as both these variables represent an outcome or result measurement to assess the movie’s success.
 
-we concluded that our model should have no more than 4 input variables, to avoid making it over complex and overfitting. So we chose our input variables based on their relation with the model’s output variable “Gross_Earnings”, prioritising the variables that presented a stronger and more meaningful relation with this one. At the same time, we decided not to include categorical columns, as all of these either showed too many categories or a particular category presented a much higher occurrence frequency than the other ones (low variance results), which ultimately would make its contribution to the model meaningless. This being said, variables such as “Duration”, “Budget”, “Reviews_by_Users” and “IMDB_Score” were the ones we believed to be more suitable for the model’s input.
-
-
+we concluded that our model should have no more than 4 input variables, to avoid making it over complex and overfitting. So we chose our input variables based on their relation with the model’s output variable “Gross_Earnings”, prioritising the variables that presented a stronger and more meaningful relation with this one. Variables such as “Duration”, “Budget”, “Reviews_by_Users” and “IMDB_Score” were the ones we believed to be more suitable for the model’s input.
 
 ## Machine learning prediction
 
 The Decision Tree model developed was trained, while also using the “anova” method for the regression. It’s important to note that no tree pruning was performed. The following results were produced:
+
+## Deep learning prediction
+
+## Performance evaluation and comparison of methods
+
+The results obtained and previously seen by each model were then evaluated performance wise and compared. It’s important to mention that the same training and testing sets were used for all the models, with a 70/30 split. We decided to use the same normalisation method, min-max scaling, for an easier comparison between results obtained in different models. For all the deep learning methods used the number of epochs and batch size were the same, 100 and 64, respectively.
+
+The following table shows how the models used performed based on the root mean square error (RMSE) and the R-squared value of the regression calculated.
+
+| Model     | RMSE   | R-squared (%) |
+|-----------|--------|----------------|
+| Decision Tree | 0.1729 | 53.15          |
+| NN_3      | 0.0536 | 66.56          |
+| NN_44     | 0.1616 | 51.25          |
+| NN_4      | 0.1242 | 56.31          |
+| SVM       | 0.1196 | 27.86          |
+| DANN      | 0.0974 | 63.27          |
+| ANN       | 0.1491 | 13.93          |
+| CNN_S     | 0.1226 | 41.82          |
+| CNN_C     | 0.1224 | 41.98          |
+
+Models such as the NN_3 and DANN, according to the metrics used, showed the most promising results when compared to the rest of the models evaluated during our studies. These models were able to achieve a more balanced and suitable structure when it comes to the features studied.
 
 ## Author Contribution Statement
 
