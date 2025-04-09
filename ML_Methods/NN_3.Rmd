@@ -1,0 +1,210 @@
+---
+title: "ML_Model_NN"
+author: "Rohith Srinivas"
+date: "`r Sys.Date()`"
+output:
+  html_document: default
+  pdf_document: default
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+------------------------------------------------------------------------
+
+#### Table of contents
+
+1.  [Install neural network package](#Install_neural_network_package)
+2.  [Data preparation](#Data_preparation)
+3.  [Neural network training](#Neural_network_training)
+4.  [Neural network prediction](#Neural_network_prediction)
+
+------------------------------------------------------------------------
+
+#### 1. Install neural network package {#Install_neural_network_package}
+
+```{r}
+# install and load the neuralnet package from CRAN
+if(require(neuralnet) == FALSE){
+  install.packages('neuralnet')
+}
+library(tidyverse)
+# Install and load the Metrics package
+if (!require(Metrics)) {
+    install.packages("Metrics")
+    library(Metrics)
+}
+```
+
+#### 2. Data preparation {#Data_preparation}
+
+```{r}
+
+# read the data from the movies.csv file
+movies <- read.csv("movies_final.csv")
+
+
+movies_df<-subset(movies, select = -Title)
+
+# for(i in names(movies_df))
+# {
+#   data <- movies_df[[i]]
+# 
+#   hist(data, main=paste("Histogram of",i), xlab=i, breaks=50)
+# 
+#  boxplot(RobScale(data), main=paste("Boxplot of",i), ylab=i)
+#  boxplot(data, main=paste("Boxplot of",i), ylab=i)
+# 
+#  summary(data)
+# }
+
+summary(movies_df)
+set.seed(48)
+# transform the data using a min-max function
+MinMax <- function(x){
+  tx <- (x - min(x)) / (max(x) - min(x))
+  return(tx)
+}
+# movies_mm <- as.data.frame(sapply(movies_df, RobScale))
+movies_mm <- as.data.frame(sapply(movies_df, MinMax))
+
+
+# create a 70/30 training/test set split
+n_rows <- nrow(movies_mm)
+# sample 70% (n_rows * 0.7) indices in the ranges 1:nrows
+training_idx <- sample(n_rows, n_rows * 0.7)
+# filter the data frame with the training indices (and the complement)
+train_mm <- movies_mm[training_idx,]
+test_mm <- movies_mm[-training_idx,]
+```
+
+#### 3. Neural network training {#Neural_network_training}
+
+```{r}
+# Define a formula for predicting Gross Earnings
+formula = Gross_Earnings ~ Duration + Budget + Reviews_by_Users + IMDB_Score 
+
+# Store min and max of Gross Earnings for rescaling predictions later
+gross_earnings_min <- min(movies_df$Gross_Earnings)
+gross_earnings_max <- max(movies_df$Gross_Earnings)
+```
+
+```{r}
+itr = 0
+
+# Define a range of values for the hyperparameters you want to tune
+hidden_layers_list = list(
+  1,
+  2,
+  3,
+  4,
+  c(2, 2),
+  c(4, 4),
+  c(8, 8)
+)
+
+learning_rate_list = c(
+  1,
+  0.1,
+  0.01,
+  0.001
+)
+tuning_results_final <- data.frame()
+while(itr<20){
+
+# Store the results
+tuning_results <- data.frame()
+
+for (hidden_layers in hidden_layers_list) {
+    for (lr in learning_rate_list) {
+        # Train the model with the current set of hyperparameters
+        model <- neuralnet(formula, data = train_mm, hidden = hidden_layers, learningrate = lr)
+        
+        # Make predictions on the test set and calculate evaluation metrics
+        predictions <- neuralnet::compute(model, test_mm[-which(names(test_mm) == "Gross_Earnings")])$net.result
+        rmse_value <- rmse(test_mm$Gross_Earnings, predictions)
+        
+        # Save the results
+        tuning_results <- rbind(tuning_results, data.frame(HiddenLayers = toString(hidden_layers), LearningRate = lr, RMSE = rmse_value, C = cor(test_mm$Gross_Earnings, predictions)))
+    }
+}
+itr <- itr + 1
+# Review the tuning results to identify the best configuration
+# print(arrange(tuning_results,RMSE))
+# write.csv(arrange(tuning_results,RMSE), file = paste("/Users/rohith/Brunel_AI/untitled folder/results/nn_results",itr,".csv"))
+#Save top 3 results in final table
+tuning_results_final <- rbind(tuning_results_final,arrange(tuning_results,RMSE)[1:3,])
+}
+print(arrange(tuning_results_final,RMSE))
+```
+
+nn1 - 79.8 80.9
+
+nn2 - 80.5 81.7
+
+nn32 - 82 81.4
+
+**Chosen Model**
+
+```{r}
+# Train neural network model with 1 hidden layer and 5 neurons
+movies_nn_3 <- neuralnet(formula, hidden = 3, data = train_mm, learningrate = 0.01)
+
+# Plot the neural network model structure
+plot(movies_nn_3)
+```
+```{r}
+# Make predictions on the test set and calculate evaluation metrics
+predictions <- neuralnet::compute(movies_nn_3, test_mm[-which(names(test_mm) == "Gross_Earnings")])
+
+# Combine actual and predicted values into a data frame for evaluation
+nn_results <- data.frame(
+  actual = test_mm$Gross_Earnings,
+  nn = predictions$net.result
+)
+
+# calculate the correlation between actual and predicted values to identify the best predictor
+cor(nn_results$actual, nn_results$nn)
+
+# Optionally, evaluating the models using metrics such as RMSE or MAE.
+rmse_value <- rmse(nn_results$actual, nn_results$nn)
+mae_value <- mae(nn_results$actual, nn_results$nn)
+# calculate r-squared
+r2 <- rsq( nn_results$actual,
+  nn_results$nn)
+
+
+print(paste("RMSE:", rmse_value))
+print(paste("MAE:", mae_value))
+print(paste("R2:", r2))
+
+# plot actual vs predicted values for the worst (blue) and best predictor (orange)
+#   note: points is used to add points on a graph
+plot(
+  nn_results$actual,
+  nn_results$nn,
+  col = 'blue',
+  xlab = 'actual values',
+  ylab = 'predicted values',
+  xlim = c(0,1),
+  ylim = c(0,1)
+)
+abline(a = 0, b = 1, col = 'red', lty = 'dashed')
+```
+
+
+**Model with 3 Neurons and Learning Rate 0.01**:
+
+-   This model configuration shows a good RMSE value consistently across different iterations.
+
+-   The learning rate of 0.01 is neither too slow (which would make training tedious) nor too fast (which could overshoot the minimum), striking a balance between efficient learning and convergence stability.
+
+-   A correlation coefficient generally above 0.81 indicates a strong positive linear relationship between the predicted and actual values, suggesting this model captures the underlying trend well.
+
+The chosen model strike a good balance between accuracy and generalization as evidenced by their RMSE and correlation values.
+Models with an excessively high learning rate, such as 1.0, were avoided due to their instability and tendency to produce worse results.
+Models with overly complex architectures were also not preferred, as they did not significantly outperform simpler models and could pose a risk of overfitting.

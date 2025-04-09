@@ -1,0 +1,135 @@
+---
+title: "CS5812-FM-SVM"
+output: html_document
+date: "2024-03-12"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### CS5812
+### Movies dataset - Support Vector Machine Model
+*Fiona Kate Morgan*  
+Revision: 1.00
+
+#### 0. load the kernlab and class package
+```{r}
+library(kernlab) # Used for KSVM - support vector machine training
+library(dplyr) # For the pipe operator
+library(caret) # for scaling
+library(Metrics) # for evaluation
+```
+
+#### 1. data preparation
+```{r}
+### 1.1 inspection of the raw data, EDA and cleaning has happened in alternative files
+movies_df <- read.csv("movies_final.csv", stringsAsFactors = F)
+
+### 1.2 load the test and train movies data
+movies_test <- read.csv("testing_movies.csv", stringsAsFactors = F)
+movies_train <- read.csv("training_movies.csv", stringsAsFactors = F)
+
+# Remove the title column as it's not needed for the model
+movies_df <- movies_df[,-1]
+movies_test <- movies_test[,-1]
+movies_train <- movies_train[,-1]
+
+# Ensure budget and Gross Earnings are numeric in all datasets
+movies_df <- movies_df %>%
+  mutate(
+    Budget = as.numeric(Budget),
+    Gross_Earnings = as.numeric(Gross_Earnings)
+  )
+
+movies_test <- movies_test %>%
+  mutate(
+    Budget = as.numeric(Budget),
+    Gross_Earnings = as.numeric(Gross_Earnings)
+  )
+
+movies_train <- movies_train %>%
+  mutate(
+    Budget = as.numeric(Budget),
+    Gross_Earnings = as.numeric(Gross_Earnings)
+  )
+```
+
+```{r}
+# Check everything looks as expected
+str(movies_test)
+```
+#### 2. Normalise data
+```{r}
+# 2.1 normalise using min-max scaling
+
+movies_test_prep <- preProcess(as.data.frame(movies_test), method=c("range"))
+movies_test_scaled <- predict(movies_test_prep, as.data.frame(movies_test))
+
+movies_train_prep <- preProcess(as.data.frame(movies_train), method=c("range"))
+movies_train_scaled <- predict(movies_train_prep, as.data.frame(movies_train))
+```
+
+#### 3. SVM training
+```{r}
+# 3.1 define a formula for predicting the diagnosis
+
+movies_formula <- reformulate(names(movies_train_scaled[,-5]), response = 'Gross_Earnings')
+```
+
+```{r}
+# 3.2 train with SVM 
+
+# type is automatically selected based on the data
+# kernel is rbf as data is complex with nonlinear patterns
+# cost function is 1 as I played with a few options and 1 produced the best results most often
+
+svm_movies_data <- ksvm(movies_formula, data = movies_train_scaled, kernel = 'rbfdot', C = 1)
+```
+
+#### 4. SVM Results
+```{r}
+# 4.1 compute the prediction for the test set with the SVM model
+svm_movies_pred <- predict(svm_movies_data, movies_test_scaled[,-5], type= "response")
+```
+
+```{r}
+# 4.2 create a table with actual and predicted values
+movies_results <- data.frame(
+  actual = movies_test_scaled$Gross_Earnings,
+  svm = svm_movies_pred
+)
+```
+
+```{r}
+# 4.3 calculate RMSE & R^2 values
+
+# RMSE
+movies_svm_rmse <- sqrt(mean((movies_results$actual - movies_results$svm)^2))
+
+# r^2
+rsq <- function(x, y) summary(lm(y~x))$r.squared
+r2 <- rsq(movies_results$svm, movies_results$actual)
+
+# Print the metrics
+cat("RMSE:", movies_svm_rmse, "\n")
+cat("R2:", r2, "\n")
+```
+
+```{r}
+# 4.4 Plot actual values vs predicted values
+plot(movies_results$actual, movies_results$svm, xlim = c(0,1), ylim = c(0,1),
+     xlab = "Actual Values", 
+     ylab = "Predicted Values", 
+     main = "Actual vs. Predicted Values", 
+     pty="s",
+     )
+
+# plot(0:1,0:1, asp=1)
+
+abline(0, 1, col = "red")
+
+legend("topleft", legend = "Ideal Fit", col = "red", lty = 1, cex = 0.8)
+
+```
+

@@ -1,0 +1,168 @@
+---
+title: "CS5812-Dua-NN"
+output: html_document
+date: "2024-03-16"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# install and load the neuralnet package from CRAN
+if(require(neuralnet) == FALSE){
+  install.packages('neuralnet')
+  
+  
+}
+# install the Metrics package (if needed) to evaluate the model's performance
+if(require(Metrics) == FALSE){
+  install.packages("Metrics")
+  library(Metrics)
+  
+}
+
+# install caret (if needed) to normalize the data
+
+  #install.packages("caret")
+  library(caret)
+
+```
+
+#### 2. Data preparation
+```{r}
+
+# read the data from the movies.csv file
+movies_df <- read.csv("movies_final.csv")
+
+### 1.2 load the test and train movies data
+movies_test <- read.csv("testing_movies.csv")
+movies_train <- read.csv("training_movies.csv")
+
+# inspect the data
+str(movies_df)
+training_movies<-subset(movies_train, select = -Title)
+test_movies<-subset(movies_test, select = -Title)
+
+```
+#### 3. Data Normalization
+```{r}
+movies_test_prep <- preProcess(as.data.frame(test_movies), method=c("range"))
+test_movies_minmax <- predict(movies_test_prep, as.data.frame(test_movies))
+
+movies_train_prep <- preProcess(as.data.frame(training_movies), method=c("range"))
+training_movies_minmax <- predict(movies_train_prep, as.data.frame(training_movies))
+```
+#### 4. Neural network training{#Neural_network_training}
+```{r}
+# define a formula for predicting gross_earnings
+grossearning_formula = Gross_Earnings ~ Duration+Budget+Reviews_by_Users+IMDB_Score
+
+# train a neural network with 1 hidden node
+gs_nn_1 <- neuralnet(grossearning_formula , data = training_movies_minmax)
+
+# train a neural network with 4 nodes on one hidden layer
+gs_nn_4 <- neuralnet(grossearning_formula , hidden = 4, data = training_movies_minmax)
+
+# train a neural network with 4 nodes on each of two hidden layers
+gs_nn_44 <- neuralnet(grossearning_formula , hidden = c(4,4), data = training_movies_minmax)
+
+# plot the three neural networks and compare their structure
+plot(gs_nn_1)
+plot(gs_nn_4)
+plot(gs_nn_44)
+```
+
+#### 5. Neural network prediction{#Neural_network_prediction}
+```{r}
+# compute the prediction for each neural network
+pred_gs_nn_1 <- compute(gs_nn_1, test_movies_minmax[,-5])
+pred_gs_nn_4 <- compute(gs_nn_4, test_movies_minmax[,-5])
+pred_gs_nn_44 <- compute(gs_nn_44, test_movies_minmax[,-5])
+
+# create a table with actual values and the three predictions
+gs_results <- data.frame(
+  actual = test_movies_minmax$Gross_Earnings,
+  nn_1 = pred_gs_nn_1$net.result,
+  nn_4 = pred_gs_nn_4$net.result,
+  nn_44 = pred_gs_nn_44$net.result
+)
+
+# calculate the correlation between actual and predicted values to identify the best predictor
+cor(gs_results[,'actual'], gs_results[,c("nn_1","nn_4", "nn_44")])
+
+# plot actual vs predicted values for the worst (blue) and best predictor (orange)
+#   note: points is used to add points on a graph
+plot(
+  gs_results$actual,
+  gs_results$nn_44,
+  col = 'blue',
+  xlab = 'actual result',
+  ylab = 'predicted result',
+  xlim = c(0,1),
+  ylim = c(0,1)
+)
+points(
+  gs_results$actual,
+  gs_results$nn_4,
+  col = 'orange'
+)
+abline(a = 0, b = 1, col = 'red', lty = 'dashed')
+legend(
+  'topleft',
+  c('nn_4', 'nn_44'),
+  pch = 1,
+  col = c('orange', 'blue'),
+  bty = 'n'
+)
+```
+
+#### 6. Performance evaluation
+
+```{r}
+
+# Calculate RMSE
+RMSE_value_1 <- rmse( gs_results$actual,
+  gs_results$nn_1)
+
+# calculate r-squared
+rsq <- function(x, y) summary(lm(y~x))$r.squared
+r2_1 <- rsq( gs_results$actual,
+  gs_results$nn_1)
+
+# Print the metrics for 1 hidden layer
+cat("RMSE:", RMSE_value_1, "\n")
+cat("R2:", r2_1, "\n")
+# Calculate RMSE
+RMSE_value_4 <- rmse( gs_results$actual,
+  gs_results$nn_4)
+
+# calculate r-squared
+r2_4 <- rsq( gs_results$actual,
+  gs_results$nn_4)
+
+# Print the metrics for 4 hidden layers
+cat("RMSE nn_4:", RMSE_value_4, "\n")
+cat("R2 nn_4:", r2_4, "\n")
+# Calculate RMSE
+RMSE_value_44 <- rmse( gs_results$actual,
+  gs_results$nn_44)
+
+# calculate r-squared 
+r2_44 <- rsq( gs_results$actual,
+  gs_results$nn_44)
+
+# Print the metrics for two 4 hidden layers
+cat("RMSE nn_44:", RMSE_value_44, "\n")
+cat("R2 nn_44:", r2_44, "\n")
+
+
+```
+
+I trained three neural networks with different hyper-parameters. As I had 4 independent variables, I choose four neuron per hidden layer in order to train my model. The results that is r-squared value obtained by the performance evaluation of each trained model are as follows:
+1. One Hidden node- 61%
+2. One hidden layer with 4 nodes- 63%
+3. Two hidden layers with 4 nodes each- 55%
+
+Hence, we can conclude the neural network with one hidden layer and four neurons was the best among the three for predicting gross earning with accuracy 63%. 
+
