@@ -40,6 +40,8 @@ we concluded that our model should have no more than 4 input variables, to avoid
 
 The Decision Tree model developed was trained, while also using the “anova” method for the regression. It’s important to note that no tree pruning was performed. The following results were produced:
 
+![Decision Tree Plot](Images/Decision_Tree_Plot.jpg)
+
 ## Deep learning prediction
 
 ## Performance evaluation and comparison of methods
