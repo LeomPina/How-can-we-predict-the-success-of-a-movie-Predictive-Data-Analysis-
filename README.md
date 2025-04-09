@@ -38,11 +38,41 @@ we concluded that our model should have no more than 4 input variables, to avoid
 
 ## Machine learning prediction
 
-The Decision Tree model developed was trained, while also using the “anova” method for the regression. It’s important to note that no tree pruning was performed. The following results were produced:
+The Decision Tree model developed was trained with the rpart(), while also using the “anova” method for the regression. It’s important to note that no tree pruning was performed. The following results were produced:
 
 <img src="Images/Decision_Tree_Plot.jpg" alt="Decision Tree Plot" width="500"/>
 
+The SVM model developed was trained with the ksvm() function, where the cost function was set to 1, as we found that it often produced better results.
+
+<img src="Images/SVM.jpg" alt="SVM" width="500"/>
+
+The neural network models were trained using the neuralnet() function. We found that the best learning rate to use for this neural network (based on the root-mean-square error (RMSE)) would be 0.01. We first chose to test a model “NN_3” with 1 hidden layer and 3 neurons, with a learning rate of 0.01.
+
+<img src="Images/NN_3.jpg" alt="NN_3" width="500"/>
+
+We also used and trained other neural network configurations such as one model “NN_44” with two hidden layers with 4 neurons each and another model “NN_4” with one hidden layer with 4 neurons.
+
+<img src="Images/NN_44andNN_4.jpg" alt="NN_44 and NN_4" width="500"/>
+
 ## Deep learning prediction
+
+To build our deep learning prediction models, we focused on using methods such as the Deep Artificial Neural Network (DANN) and the Convolutional Neural Network (CNN).
+
+The DANN model built used 3 fully connected (dense) layers, as the first layer (input layer) is composed of 5 neurons while expecting 4 input features (4 input variables that we previously chose). The second layer contains 5 neurons and the output layer (final) presents only one neuron meant for the output “Gross_Earnings” feature. Not many neurons were used in the construction of this model as we did not want it to become over complex or overfitting. This model used the activation function “ReLU” for all the first two layers, as this function introduces non-linearity to the network (which helps to deal with more complex relations), being computationally efficient and we expect output values higher than 0 while using the mean squared error (MSE) as its loss function. The learning rate was set to 0.06, as we found that values below 0.01 often did not produce good results, along with an SGD optimizer.
+
+<img src="Images/DANN.jpg" alt="DANN" width="500"/>
+
+The ANN model used 1 dense (fully connected) layer, presenting 1 neuron as output, while expecting 4 features as input. The learning rate used was quite similar to the previous one, 0.01, along with the same SGD optimizer. This model also uses MSE as its loss function. On the other hand, there is no use of an activation function.
+
+<img src="Images/ANN.jpg" alt="ANN" width="500"/>
+
+The first and simpler CNN model tested used a “LeNet” architecture with 6 layers, as the first convolutional layer (input layer) expects an input shape of (4,1,1) and is composed of 3 filters of size (2,1). The second convolutional layer contains 10 filters of size (2,1). For both these convolutional layers, the stride is (1,1) and the padding used ensures that the output size of the image is the same as the input. The third layer is a flattening layer, as it flattens the output of the previous layer into a 1D array. The fourth and fifth layers are both fully connected layers that contain 120 and 84 neurons, respectively. The final output layer contains only one neuron meant for the output variable. This model used the activation function “ReLU” for all the convolutional and hidden layers. Similarly to the other models, this one also has the same SGD optimizer and MSE as its loss function. We decided not to add a pooling layer after the first convolutional layer as the dimensions can be considered too small to be further reduced (this would impede the feasibility of incorporating another convolutional layer with a kernel size larger than (1,1)). It’s also worth mentioning that normally the kernel size is represented by odd numbers, we used a size of (2,1) as we believed that we would get less meaningful information with a size of (3,1).
+
+<img src="Images/CNN_S.jpg" alt="CNN_S" width="500"/>
+
+To further investigate the CNN architecture, we tested another, more complex, CNN model. This model used an “AlexNet” architecture with 8 layers, as the first convolutional layer (input) expects an input shape of (4,1,1) and is composed of 12 filters of size (3,1). The second layer is a max pooling layer, used to decrease the spatial dimensions of the feature map, with both a pooling size and stride of (2,1) (the same size is used to prevent a possible overlap), followed by two convolutional layers with stride (1,1) and a number of 48 and 32 filters, respectively, for hierarchical feature learning purposes. The next layer is a flattening layer, while the sixth and seventh are both fully connected dense layers that contain 150 and 100 neurons, respectively. The final output layer presents only one neuron. This model used the activation function “ReLU” for all the convolutional and hidden layers, as well as the previously mentioned SGD optimizer and MSE as its loss function.
+
+<img src="Images/CNN_C.jpg" alt="CNN_C" width="500"/>
 
 ## Performance evaluation and comparison of methods
 
